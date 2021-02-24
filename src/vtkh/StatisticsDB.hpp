@@ -298,8 +298,9 @@ void SetEventT0()
       return;
 
     int rank = 0, nProcs = 1;
-    MPI_Comm mpiComm;
+
 #ifdef VTKH_PARALLEL
+    MPI_Comm mpiComm;
     mpiComm = MPI_Comm_f2c(vtkh::GetMPICommHandle());
     MPI_Comm_size(mpiComm, &nProcs);
     MPI_Comm_rank(mpiComm, &rank);
