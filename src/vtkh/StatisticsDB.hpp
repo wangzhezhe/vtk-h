@@ -94,8 +94,8 @@ public:
 
 private:
   StopWatchType Mode;
+  double EpochTime, Time;
   bool Running, KeepHistory;
-  double Time, EpochTime;
   std::chrono::high_resolution_clock::time_point StartTime, EndTime;
   std::vector<double> History;
 };
@@ -124,7 +124,7 @@ public:
     void Normalize(float tmin, float tmax)
     {
         float dt = tmax-tmin;
-        for (int i = 0; i < history.size(); i++)
+        for (long unsigned int i = 0; i < history.size(); i++)
         {
             float t0 = history[i].first;
             float t1 = history[i].second;
@@ -135,7 +135,7 @@ public:
         }
     }
 
-    double ts, t0;
+    double ts = 0 , t0 = 0;
     std::vector<std::pair<double,double>> history;
 };
 
@@ -211,7 +211,7 @@ public:
   void insert(const std::vector<StatisticsDB> &v)
   {
     statsComputed = false;
-    for (int i = 0; i < v.size(); i++)
+    for (long unsigned int i = 0; i < v.size(); i++)
     {
       const StatisticsDB &s = v[i];
       for (auto ti = s.timers.begin(); ti != s.timers.end(); ti++)
@@ -329,6 +329,7 @@ void SetEventT0()
         for (int i = 0; i < numRegTimers; i++)
           regularTimers[rank*numRegTimers + i] = vals[i];
 
+#ifdef VTKH_PARALLEL
         //Send all this goulash to rank 0.
         if (nProcs > 1)
         {
@@ -336,7 +337,7 @@ void SetEventT0()
           MPI_Reduce(&(regularTimers[0]), &(tmp[0]), regularTimers.size(), MPI_FLOAT, MPI_SUM, 0, mpiComm);
           regularTimers = tmp;
         }
-
+#endif
         //create the stats.
         if (rank == 0)
         {
@@ -371,17 +372,21 @@ void SetEventT0()
       for (int i = 0; i < numEpochTimers; i++)
       {
         int maxVal = 0;
+#ifdef VTKH_PARALLEL
         MPI_Allreduce(&(numEpochs[i]), &maxVal, 1, MPI_INT, MPI_MAX, mpiComm);
+#endif
         std::vector<float> hvals(nProcs*maxVal, 0.0f);
         const auto& history = this->timers[epochNames[i]].GetHistory();
-        for (int j = 0; j < history.size(); j++)
+        for (long unsigned int j = 0; j < history.size(); j++)
           hvals[rank*maxVal + j] = history[j];
+#ifdef VTKH_PARALLEL
         if (nProcs > 1)
         {
           std::vector<float> tmp(hvals.size(), 0.0f);
           MPI_Reduce(&(hvals[0]), &(tmp[0]), hvals.size(), MPI_FLOAT, MPI_SUM, 0, mpiComm);
           hvals = tmp;
         }
+#endif
         if (rank == 0)
         {
           this->EpochRankValues[epochNames[i]].resize(nProcs);
@@ -411,12 +416,14 @@ void SetEventT0()
         counterVals[rank*numCounters + i] = it->second;
       }
 
+#ifdef VTKH_PARALLEL
       if (nProcs > 1)
       {
           std::vector<unsigned long> tmp(counterVals.size(), 0);
           MPI_Reduce(&(counterVals[0]), &(tmp[0]), counterVals.size(), MPI_UNSIGNED_LONG, MPI_SUM, 0, mpiComm);
           counterVals = tmp;
       }
+#endif
 
       if (rank == 0)
       {
@@ -457,6 +464,7 @@ void SetEventT0()
 
       float allMin, allMax;
       int allMaxSz;
+#ifdef VTKH_PARALLEL
       MPI_Allreduce(&myMin, &allMin, 1, MPI_FLOAT, MPI_MIN, mpiComm);
       MPI_Allreduce(&myMax, &allMax, 1, MPI_FLOAT, MPI_MAX, mpiComm);
       MPI_Allreduce(&myMaxSz, &allMaxSz, 1, MPI_INT, MPI_MAX, mpiComm);
@@ -500,6 +508,7 @@ void SetEventT0()
           MPI_Send(&evData[0], buffSz, MPI_FLOAT, 0, tag, mpiComm);
         }
       }
+#endif
     }
 
     this->statsComputed = true;
@@ -556,8 +565,8 @@ private:
 #define ADD_COUNTER(nm) StatisticsDB::GetStats("stats")->AddCounter(nm)
 #define COUNTER_INC(nm, val) StatisticsDB::GetStats("stats")->Increment(nm, val)
 
-#define ADD_TIMER(nm) StatisticsDB::GetStats("stats")->AddTimer(nm, StopWatch::REGULAR)
-#define ADD_EPOCH_TIMER(nm) StatisticsDB::GetStats("stats")->AddTimer(nm, StopWatch::EPOCH_HISTORY)
+#define ADD_TIMER(nm) StatisticsDB::GetStats("stats")->AddTimer(nm, vtkh::StopWatch::REGULAR)
+#define ADD_EPOCH_TIMER(nm) StatisticsDB::GetStats("stats")->AddTimer(nm, vtkh::StopWatch::EPOCH_HISTORY)
 
 #define EPOCH_TIMER_START(nm) StatisticsDB::GetStats("stats")->EpochStart(nm)
 #define EPOCH_TIMER_STOP(nm) StatisticsDB::GetStats("stats")->EpochStop(nm)
