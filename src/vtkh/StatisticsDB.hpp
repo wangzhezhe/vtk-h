@@ -279,7 +279,10 @@ void SetEventT0()
     double t0 = 0.0;
 #ifdef VTKH_PARALLEL
     t0 = MPI_Wtime();
+
+    std::cerr << "t0 parallel: " << t0 << std::endl;
 #endif
+
     for (auto it = events.begin(); it != events.end(); it++)
       it->second.SetT0(t0);
   }
