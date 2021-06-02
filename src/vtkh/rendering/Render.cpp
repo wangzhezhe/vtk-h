@@ -17,6 +17,9 @@ Render::Render()
     m_shading(true),
     m_canvas(m_width, m_height)
 {
+  m_world_annotation_scale[0] = 1.f;
+  m_world_annotation_scale[1] = 1.f;
+  m_world_annotation_scale[2] = 1.f;
 }
 
 Render::~Render()
@@ -45,6 +48,14 @@ void
 Render::DoRenderBackground(bool on)
 {
   m_render_background = on;
+}
+
+void
+Render::ScaleWorldAnnotations(float x, float y, float z)
+{
+  m_world_annotation_scale[0] = x;
+  m_world_annotation_scale[1] = y;
+  m_world_annotation_scale[2] = z;
 }
 
 vtkm::Int32
@@ -112,6 +123,12 @@ Render::SetImageName(const std::string &name)
 }
 
 void
+Render::SetComments(const std::vector<std::string> &comments)
+{
+  m_comments = comments;
+}
+
+void
 Render::SetBackgroundColor(float bg_color[4])
 {
   m_bg_color.Components[0] = bg_color[0];
@@ -135,6 +152,12 @@ Render::GetImageName() const
   return m_image_name;
 }
 
+std::vector<std::string>
+Render::GetComments() const
+{
+  return m_comments;
+}
+
 vtkm::rendering::Color
 Render::GetBackgroundColor() const
 {
@@ -152,7 +175,7 @@ Render::RenderWorldAnnotations()
   m_canvas.SetForegroundColor(m_fg_color);
 
   Annotator annotator(m_canvas, m_camera, m_scene_bounds);
-  annotator.RenderWorldAnnotations();
+  annotator.RenderWorldAnnotations(m_world_annotation_scale);
 
 }
 
@@ -188,6 +211,7 @@ Render::Copy() const
   copy.m_render_background = m_render_background;
   copy.m_shading = m_shading;
   copy.m_canvas = CreateCanvas();
+  copy.m_world_annotation_scale = m_world_annotation_scale;
   return copy;
 }
 
@@ -247,7 +271,7 @@ Render::Save()
   int height = m_canvas.GetHeight();
   int width = m_canvas.GetWidth();
   PNGEncoder encoder;
-  encoder.Encode(color_buffer, width, height);
+  encoder.Encode(color_buffer, width, height, m_comments);
   encoder.Save(m_image_name + ".png");
 }
 

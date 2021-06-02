@@ -20,6 +20,7 @@ set(vtkh_filters_headers
   Lagrangian.hpp
   MarchingCubes.hpp
   ParticleAdvection.hpp
+  ParticleMerging.hpp
   PointAverage.hpp
   PointTransform.hpp
   Recenter.hpp
@@ -60,6 +61,7 @@ set(vtkh_filters_sources
   Lagrangian.cpp
   MarchingCubes.cpp
   ParticleAdvection.cpp
+  ParticleMerging.cpp
   PointAverage.cpp
   PointTransform.cpp
   Recenter.cpp
@@ -73,6 +75,11 @@ set(vtkh_filters_sources
   VectorMagnitude.cpp
   communication/MemStream.cpp
   )
+
+if(ENABLE_FILTER_CONTOUR_TREE)
+  list(APPEND vtkh_filters_sources ContourTree.cpp)
+endif()
+
 
 set(vtkh_comm_filters_sources
   communication/MemStream.cpp
@@ -98,6 +105,10 @@ if (ENABLE_SERIAL)
       )
 
     target_compile_definitions(vtkh_filters PRIVATE VTKH_COMPILING_FLAG)
+
+    if(ENABLE_FILTER_CONTOUR_TREE)
+      target_compile_definitions(vtkh_filters PRIVATE VTK_H_ENABLE_FILTER_CONTOUR_TREE)
+    endif()
 
     if(ENABLE_OPENMP)
         target_compile_definitions(vtkh_filters PRIVATE VTKH_USE_OPENMP)
@@ -160,6 +171,10 @@ if (MPI_FOUND)
     target_compile_definitions(vtkh_filters_mpi PRIVATE VTKH_PARALLEL)
     target_compile_definitions(vtkh_filters_mpi PRIVATE VTKH_COMPILING_FLAG)
 
+    if(ENABLE_FILTER_CONTOUR_TREE)
+      target_compile_definitions(vtkh_filters_mpi PRIVATE VTK_H_ENABLE_FILTER_CONTOUR_TREE)
+    endif()
+
     if(ENABLE_OPENMP)
           target_compile_definitions(vtkh_filters_mpi PRIVATE VTKH_USE_OPENMP)
     endif()
@@ -182,4 +197,13 @@ if (MPI_FOUND)
             LIBRARY DESTINATION ${VTKh_INSTALL_LIB_DIR}
             RUNTIME DESTINATION ${VTKh_INSTALL_BIN_DIR})
 
+    if(NOT ENABLE_SERIAL)
+      # Install headers
+      install(FILES ${vtkh_filters_headers}
+        DESTINATION ${VTKh_INSTALL_INCLUDE_DIR}/vtkh/filters)
+
+      # Install headers
+      install(FILES ${vtkh_comm_filters_headers}
+        DESTINATION ${VTKh_INSTALL_INCLUDE_DIR}/vtkh/filters/communication)
+    endif()
 endif()

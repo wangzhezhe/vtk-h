@@ -1,8 +1,14 @@
+
 #include <iostream>
-#include <vtkh/vtkm_filters/vtkmParticleAdvection.hpp>
 #include <vtkh/filters/ParticleAdvection.hpp>
+#include <vtkm/filter/ParticleAdvection.h>
 #include <vtkh/vtkh.hpp>
 #include <vtkh/Error.hpp>
+
+#if VTKH_PARALLEL
+#include <vtkm/thirdparty/diy/diy.h>
+#include <mpi.h>
+#endif
 
 namespace vtkh
 {
@@ -29,9 +35,26 @@ void ParticleAdvection::PostExecute()
 
 void ParticleAdvection::DoExecute()
 {
-  vtkmParticleAdvection particleAdvectionFilter;
-
   this->m_output = new DataSet();
+
+#ifndef VTKH_BYPASS_VTKM_BIH
+
+#ifdef VTKH_PARALLEL
+  /*
+#ifndef VTKM_ENABLE_MPI
+  static_assert(false, "Parallel support for particle advection requires that MPI be enabled in VTK-m.");
+#endif
+
+  // Setup VTK-h and VTK-m comm.
+  MPI_Comm mpi_comm = MPI_Comm_f2c(vtkh::GetMPICommHandle());
+  vtkm::cont::EnvironmentTracker::SetCommunicator(vtkmdiy::mpi::communicator(vtkmdiy::mpi::make_DIY_MPI_Comm(mpi_comm)));
+*/
+
+  MPI_Comm mpi_comm = MPI_Comm_f2c(vtkh::GetMPICommHandle());
+  vtkmdiy::mpi::communicator world;
+  vtkm::cont::EnvironmentTracker::SetCommunicator(world);
+#endif
+
   const int num_domains = this->m_input->GetNumberOfDomains();
 
   vtkm::cont::PartitionedDataSet inputs;
@@ -58,12 +81,20 @@ void ParticleAdvection::DoExecute()
     inputs.AppendPartition(dom);
   }
 
-  auto out = particleAdvectionFilter.Run(inputs, m_field_name, m_step_size, m_num_steps, m_seeds);
+  vtkm::filter::ParticleAdvection particleAdvectionFilter;
+  auto seedsAH = vtkm::cont::make_ArrayHandle(m_seeds, vtkm::CopyFlag::Off);
+
+  particleAdvectionFilter.SetStepSize(m_step_size);
+  particleAdvectionFilter.SetActiveField(m_field_name);
+  particleAdvectionFilter.SetSeeds(seedsAH);
+  particleAdvectionFilter.SetNumberOfSteps(m_num_steps);
+  auto out = particleAdvectionFilter.Execute(inputs);
 
   for (vtkm::Id i = 0; i < out.GetNumberOfPartitions(); i++)
   {
     this->m_output->AddDomain(out.GetPartition(i), i);
   }
+#endif
 }
 
 } //  namespace vtkh
