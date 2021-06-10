@@ -1,3 +1,4 @@
+
 ###############################################################################
 # Copyright (c) 2015-2017, Lawrence Livermore National Security, LLC.
 #
@@ -47,16 +48,6 @@
 # Unit Tests
 ################################
 
-# Contour tree depends on the VTK-m build type.
-if(VTKm_ENABLE_MPI)
-    message(STATUS "VTKm_ENABLE_MPI TRUE")
-#    set( t_vtk-h_contour_tree_ "" )
-#    set( t_vtk-h_contour_tree_par_ "t_vtk-h_contour_tree_par" )
-else()
-    message(STATUS "VTKm_ENABLE_MPI FALSE")
-#    set( t_vtk-h_contour_tree_ "" )
-#    set( t_vtk-h_contour_tree_par_ "" )
-endif()
 
 ################################
 # Core VTK-h Unit Tests
@@ -87,6 +78,15 @@ set(BASIC_TESTS t_vtk-h_smoke
 #                ${t_vtk-h_contour_tree_}
                 )
 
+
+# Contour tree depends on the VTK-m build type.
+# If vtkm was built with/out mpi support, we only run the
+# non-mpi contour tree test
+if(NOT VTKm_ENABLE_MPI AND ENABLE_FILTER_CONTOUR_TREE)
+  list(APPEND BASIC_TESTS t_vtk-h_contour_tree)
+endif()
+
+
 set(CUDA_TESTS t_vtk-h_cuda)
 
 set(MPI_TESTS t_vtk-h_smoke_par
@@ -101,8 +101,16 @@ set(MPI_TESTS t_vtk-h_smoke_par
               t_vtk-h_raytracer_par
               t_vtk-h_sampling_par
               t_vtk-h_volume_renderer_par
-#              ${t_vtk-h_contour_tree_par_}
               )
+
+# Contour tree depends on the VTK-m build type.
+# If vtkm was built with mpi support, we only run the
+# par contour tree test
+if(VTKm_ENABLE_MPI AND ENABLE_FILTER_CONTOUR_TREE)
+  list(APPEND MPI_TESTS t_vtk-h_contour_tree_par)
+endif()
+
+
 
 ################################
 # Add main tests

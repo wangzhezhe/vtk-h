@@ -2,16 +2,17 @@ packages:
   all:
     compiler: [gcc]
     providers:
+      mpi:  [mpich]
       blas: [netlib-lapack]
       lapack: [netlib-lapack]
   netlib-lapack:
     buildable: False
     paths:
       netlib-lapack: /usr/
-  openmpi:
+  mpich:
     buildable: False
     paths:
-      openmpi: /usr
+      mpich: /usr
   gdbm:
     buildable: False
     paths:
@@ -32,17 +33,26 @@ packages:
     buildable: False
     paths:
       ncurses: /usr
-  pkg-confg:
+  pkg-config:
     buildable: False
     paths:
-      pkg-confg: /usr
+      pkg-config: /usr
   openssl:
     buildable: False
     paths:
       openssl: /usr
-  zlib:
+  perl:
     buildable: False
     paths:
-      zlib: /usr
+      perl: /usr
+  tar:
+    buildable: False
+    paths:
+      tar: /usr
   conduit:
     version: [master]
+  # python 2 constraints
+  py-sphinx:
+    version: [1.8.4]
+  py-numpy:
+    version: [1.16.5]

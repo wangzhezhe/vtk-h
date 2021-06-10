@@ -6,6 +6,8 @@
 #include <vtkh/filters/Recenter.hpp>
 #include <vtkh/vtkm_filters/vtkmMarchingCubes.hpp>
 
+#include <sstream>
+
 namespace vtkh
 {
 
@@ -72,6 +74,7 @@ void MarchingCubes::PreExecute()
   {
     if(m_use_contour_tree)
     {
+#ifdef VTK_H_ENABLE_FILTER_CONTOUR_TREE
       // Run contour tree every time.
       vtkh::ContourTree contour_tree;
       contour_tree.SetInput(this->m_input);
@@ -85,6 +88,9 @@ void MarchingCubes::PreExecute()
       vtkh::DataSet *output = contour_tree.GetOutput();
       if( output )
         delete output;
+#else
+      throw Error("Contour tree disabled");
+#endif
     }
     else
     {
