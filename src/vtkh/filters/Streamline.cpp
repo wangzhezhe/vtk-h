@@ -72,7 +72,7 @@ void Streamline::DoExecute()
   }
 
   vtkm::filter::Streamline streamlineFilter;
-  auto seedsAH = vtkm::cont::make_ArrayHandle(m_seeds, vtkm::CopyFlag::Off);
+  auto seedsAH = vtkm::cont::make_ArrayHandle(m_seeds, vtkm::CopyFlag::On);
 
   streamlineFilter.SetStepSize(m_step_size);
   streamlineFilter.SetActiveField(m_field_name);
