@@ -17,6 +17,95 @@
 #include "t_test_utils.hpp"
 #include <iostream>
 #include <mpi.h>
+#include <vtkm/io/VTKDataSetReader.h>
+#include <vtkm/io/VTKDataSetWriter.h>
+#include <vtkm/filter/PointAverage.h>
+
+void
+SaveOutput(vtkh::DataSet* output, int rank, std::string fname)
+{
+  std::cerr << "rank " << rank << " saving data from " << output->GetNumberOfDomains() << " blocks" << std::endl;
+  for (int i = 0; i < output->GetNumberOfDomains(); i++)
+  {
+    auto ds = output->GetDomain(i);
+
+    char nm[512];
+    sprintf(nm, "%s.r%d.%d.vtk", fname.c_str(), rank, i);
+    vtkm::io::VTKDataSetWriter wrt(nm);
+    wrt.WriteDataSet(ds);
+  }
+}
+
+void LoadData(std::string& fname, std::vector<vtkm::cont::DataSet>& dataSets, int rank, int nRanks)
+{
+  std::string buff;
+  std::ifstream is;
+  is.open(fname);
+  std::cout << "Opening: " << fname << std::endl;
+  if (!is)
+  {
+    std::cout << "File not found! : " << fname << std::endl;
+    throw "unknown file: " + fname;
+  }
+
+  auto p0 = fname.rfind(".visit");
+  if (p0 == std::string::npos)
+    throw "Only .visit files are supported.";
+  auto tmp = fname.substr(0, p0);
+  auto p1 = tmp.rfind("/");
+  auto dir = tmp.substr(0, p1);
+
+  std::getline(is, buff);
+  auto numBlocks = std::stoi(buff.substr(buff.find("!NBLOCKS ") + 9, buff.size()));
+
+  int nPer = numBlocks / nRanks;
+  int b0 = rank * nPer, b1 = (rank + 1) * nPer;
+  if (rank == (nRanks - 1))
+    b1 = numBlocks;
+
+  if (rank == 0)
+    std::cout << "numBlocks= " << numBlocks << " "<<b0<<" "<<b1<<std::endl;
+
+  for (int i = 0; i < numBlocks; i++)
+  {
+    std::getline(is, buff);
+    if (i >= b0 && i < b1)
+    {
+      vtkm::cont::DataSet ds;
+      std::string vtkFile = dir + "/" + buff;
+      vtkm::io::VTKDataSetReader reader(vtkFile);
+      ds = reader.ReadDataSet();
+
+      vtkm::cont::ArrayHandle<vtkm::FloatDefault> Vx, Vy, Vz;
+      Vx = ds.GetField("velocityx").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<vtkm::FloatDefault>>();
+      Vy = ds.GetField("velocityy").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<vtkm::FloatDefault>>();
+      Vz = ds.GetField("velocityz").GetData().AsArrayHandle<vtkm::cont::ArrayHandle<vtkm::FloatDefault>>();
+      auto cellV = vtkm::cont::make_ArrayHandleSOA<vtkm::Vec3f_64>({Vx, Vy, Vz});
+      ds.AddField(vtkm::cont::make_FieldCell("velC", cellV));
+
+      vtkm::filter::PointAverage avg;
+      avg.SetActiveField("velC");
+      avg.SetOutputFieldName("vel");
+      ds = avg.Execute(ds);
+
+      /*
+      auto f = ds.GetField("grad").GetData();
+      vtkm::cont::ArrayHandle<vtkm::Vec<double, 3>> fieldArray;
+      f.AsArrayHandle(fieldArray);
+      int n = fieldArray.GetNumberOfValues();
+      auto portal = fieldArray.WritePortal();
+      for (int ii = 0; ii < n; ii++)
+        portal.Set(ii, vtkm::Vec<double, 3>(1, 0, 0));
+      */
+
+      dataSets.push_back(ds);
+    }
+  }
+}
+
+
+
+
 
 void checkValidity(vtkh::DataSet *data, const int maxSteps, bool isSL)
 {
@@ -93,11 +182,57 @@ RunFilter(vtkh::DataSet& input,
 TEST(vtkh_particle_advection, vtkh_serial_particle_advection)
 {
   MPI_Init(NULL, NULL);
-  int comm_size, rank;
-  MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+  int size, rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   vtkh::SetMPICommHandle(MPI_Comm_c2f(MPI_COMM_WORLD));
 
+
+
+
+ std::string dataFile = "/home/jkress/packages/visualizationPerformanceEvaluation/vtk-h/build/files.visit";
+ std::vector<vtkm::cont::DataSet> dataSets;
+ LoadData(dataFile, dataSets, rank, size);
+ vtkh::DataSet pds;
+ for (const auto& ds: dataSets)
+   pds.AddDomain(ds, rank);
+
+ vtkh::Streamline pa;
+ std::vector<vtkm::Particle> seeds;
+ seeds.push_back({{0.0731594, 0.00178438, 0.0588844}, rank});
+
+ if (size == 1)
+ {
+   std::ofstream out("pts.txt");
+   for (const auto& p : seeds)
+     out<<p.ID<<", "<<p.Pos[0]<<", "<<p.Pos[1]<<", "<<p.Pos[2]<<std::endl;
+ }
+ auto seedArray = vtkm::cont::make_ArrayHandle(seeds, vtkm::CopyFlag::On);
+
+ /*
+   vtkm::cont::ArrayHandle<vtkm::Particle> seedArray;
+   seedArray = vtkm::cont::make_ArrayHandle({ vtkm::Particle(vtkm::Vec3f(.1f, .1f, .9f), 0),
+   vtkm::Particle(vtkm::Vec3f(.1f, .6f, .6f), 1),
+   vtkm::Particle(vtkm::Vec3f(.1f, .9f, .1f), 2) });
+ */
+ pa.SetStepSize(0.001f);
+ //pa.SetStepSize(0.01f);
+ pa.SetNumberOfSteps(1000000);
+ pa.SetSeeds(seeds);
+ pa.SetField("vel");
+
+
+ pa.SetInput(&pds);
+ pa.Update();
+ auto output = pa.GetOutput();
+ SaveOutput(output, rank, "output");
+
+ MPI_Barrier(MPI_COMM_WORLD);
+ MPI_Finalize();
+
+
+
+#if 0
   std::cout << "Running parallel Particle Advection, vtkh - with " << comm_size << " ranks" << std::endl;
 
   vtkh::DataSet data_set;
@@ -142,4 +277,5 @@ TEST(vtkh_particle_advection, vtkh_serial_particle_advection)
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
+#endif
 }
