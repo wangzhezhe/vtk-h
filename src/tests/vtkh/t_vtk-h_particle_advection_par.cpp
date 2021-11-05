@@ -73,6 +73,7 @@ void LoadData(std::string& fname, std::vector<vtkm::cont::DataSet>& dataSets, in
     {
       vtkm::cont::DataSet ds;
       std::string vtkFile = dir + "/" + buff;
+      std::cerr << "Rank " << rank << " opening file " << buff << std::endl;
       vtkm::io::VTKDataSetReader reader(vtkFile);
       ds = reader.ReadDataSet();
 
@@ -87,6 +88,22 @@ void LoadData(std::string& fname, std::vector<vtkm::cont::DataSet>& dataSets, in
       avg.SetActiveField("velC");
       avg.SetOutputFieldName("vel");
       ds = avg.Execute(ds);
+
+      //rename ghost field
+      auto temp = ds.GetField("topo_ghosts");
+      if(temp.GetNumberOfValues() >= 1)
+      {
+          auto ghostArr = temp.GetData().AsArrayHandle<vtkm::cont::ArrayHandleBasic<vtkm::FloatDefault>>();
+          const vtkm::FloatDefault* buff = ghostArr.GetReadPointer();
+          vtkm::cont::ArrayHandle<vtkm::UInt8> ghosts;
+          ghosts.Allocate(temp.GetNumberOfValues());
+          for (vtkm::Id z = 0; z < temp.GetNumberOfValues(); z++)
+          {
+              ghosts.WritePortal().Set(z, static_cast<vtkm::UInt8>(buff[z]));
+          }
+          ds.AddCellField("vtkmGhostCells", ghosts);
+          //data.GetDomain(i).RemoveField("topo_ghosts");
+      }
 
       /*
       auto f = ds.GetField("grad").GetData();
@@ -217,7 +234,7 @@ TEST(vtkh_particle_advection, vtkh_serial_particle_advection)
  */
  pa.SetStepSize(0.001f);
  //pa.SetStepSize(0.01f);
- pa.SetNumberOfSteps(1000000);
+ pa.SetNumberOfSteps(1000);
  pa.SetSeeds(seeds);
  pa.SetField("vel");
 
