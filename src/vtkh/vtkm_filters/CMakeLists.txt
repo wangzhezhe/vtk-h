@@ -12,8 +12,10 @@ set(vtkm_filters_headers
   vtkmLagrangian.hpp
   vtkmMarchingCubes.hpp
   vtkmMeshQuality.hpp
+  vtkmParticleAdvection.hpp
   vtkmPointAverage.hpp
   vtkmPointTransform.hpp
+  vtkmStreamline.hpp
   vtkmTetrahedralize.hpp
   vtkmTriangulate.hpp
   vtkmThreshold.hpp
@@ -31,8 +33,10 @@ set(vtkm_filters_sources
   vtkmLagrangian.cpp
   vtkmMarchingCubes.cpp
   vtkmMeshQuality.cpp
+  vtkmParticleAdvection.cpp
   vtkmPointAverage.cpp
   vtkmPointTransform.cpp
+  vtkmStreamline.cpp
   vtkmTetrahedralize.cpp
   vtkmTriangulate.cpp
   vtkmThreshold.cpp
@@ -76,4 +80,3 @@ endif()
 
 install(FILES ${vtkm_filters_install_headers}
   DESTINATION ${VTKh_INSTALL_INCLUDE_DIR}/vtkh/vtkm_filters)
-

@@ -180,7 +180,6 @@ vtkm::cont::Field CreatePointVecField(int size, const char* fieldName)
     FieldType val = i / FieldType(size);
 
     vtkm::Vec<FieldType, 3> vec(val, -val, val);
-
     data.WritePortal().Set(i, vec);
   }
 

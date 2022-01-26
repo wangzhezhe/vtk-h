@@ -1,9 +1,6 @@
 #include <vtkh/filters/MarchingCubes.hpp>
 #include <vtkh/Error.hpp>
-
-#ifdef VTK_H_ENABLE_FILTER_CONTOUR_TREE
 #include <vtkh/filters/ContourTree.hpp>
-#endif
 
 #include <vtkh/filters/CleanGrid.hpp>
 #include <vtkh/filters/Recenter.hpp>
@@ -86,6 +83,7 @@ void MarchingCubes::PreExecute()
       contour_tree.Update();
 
       m_iso_values = contour_tree.GetIsoValues();
+
       // Clean up the memory used for the data output.
       vtkh::DataSet *output = contour_tree.GetOutput();
       if( output )

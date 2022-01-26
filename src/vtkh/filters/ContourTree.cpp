@@ -405,9 +405,9 @@ void ContourTree::DoExecute()
 #ifndef VTKH_PARALLEL
     ValueArray dataField;
     inDataSet.GetField(0).GetData().CopyTo(dataField);
-
     bool dataFieldIsSorted = false;
 #else // VTKH_PARALLEL
+
     ValueArray dataField;
     bool dataFieldIsSorted;
 
