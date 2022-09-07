@@ -59,6 +59,15 @@ if(CUDA_FOUND)
     list(APPEND vtkm_filters_deps cuda)
 endif()
 
+if(MPI_FOUND)
+blt_add_library(
+  NAME vtkm_compiled_filters
+  SOURCES ${vtkm_filters_sources}
+  HEADERS ${vtkm_filters_headers}
+  DEPENDS_ON ${vtkm_filters_deps} mpi
+  OBJECT TRUE
+  )
+elseif()
 blt_add_library(
   NAME vtkm_compiled_filters
   SOURCES ${vtkm_filters_sources}
@@ -66,6 +75,7 @@ blt_add_library(
   DEPENDS_ON ${vtkm_filters_deps}
   OBJECT TRUE
   )
+endif()
 
 vtkm_add_target_information(vtkm_compiled_filters DEVICE_SOURCES ${vtkm_filter_sources})
 
