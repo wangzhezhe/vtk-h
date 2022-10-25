@@ -103,6 +103,8 @@ void Streamline::DoExecute()
   streamlineFilter.SetActiveField(m_field_name);
   streamlineFilter.SetSeeds(seedsAH);
   streamlineFilter.SetNumberOfSteps(m_num_steps);
+  streamlineFilter.SetIterationStep(m_iteration_step);
+  
   auto out = streamlineFilter.Execute(inputs);
 
   for (vtkm::Id i = 0; i < out.GetNumberOfPartitions(); i++)

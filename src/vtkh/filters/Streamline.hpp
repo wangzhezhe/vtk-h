@@ -21,6 +21,7 @@ public:
   void SetStepSize(const double &step_size) {   m_step_size = step_size; }
   void SetSeeds(const std::vector<vtkm::Particle>& seeds) { m_seeds = seeds; }
   void SetNumberOfSteps(int numSteps) { m_num_steps = numSteps; }
+  void SetIterationStep(int iterationStep) { m_iteration_step = iterationStep; }
 
 protected:
   void PreExecute() override;
@@ -30,6 +31,7 @@ protected:
   std::string m_field_name;
   double m_step_size;
   int m_num_steps;
+  int m_iteration_step;
   std::vector<vtkm::Particle> m_seeds;
 };
 

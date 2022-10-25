@@ -103,6 +103,7 @@ void ParticleAdvection::DoExecute()
   particleAdvectionFilter.SetActiveField(m_field_name);
   particleAdvectionFilter.SetSeeds(seedsAH);
   particleAdvectionFilter.SetNumberOfSteps(m_num_steps);
+  particleAdvectionFilter.SetIterationStep(m_iteration_step);
   auto out = particleAdvectionFilter.Execute(inputs);
 
   for (vtkm::Id i = 0; i < out.GetNumberOfPartitions(); i++)
