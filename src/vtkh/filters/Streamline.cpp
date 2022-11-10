@@ -67,7 +67,7 @@ void Streamline::DoExecute()
         using vectorField_d = vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float64, 3>>;
         using vectorField_f = vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::Float32, 3>>;
         auto field = dom.GetField(m_field_name).GetData();
-        if(field.IsType<vectorField_d>() && !field.IsType<vectorField_f>())
+        if(field.IsType<vectorField_d>() || field.IsType<vectorField_f>())
         {
           inputs.AppendPartition(dom);
         }
